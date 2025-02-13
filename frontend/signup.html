@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registrazione</title>
+</head>
+<body>
+  <h2>Registrazione</h2>
+  <form id="signupForm">
+    <input type="text" id="username" placeholder="Username" required>
+    <input type="password" id="password" placeholder="Password" required>
+    <button type="submit">Registrati</button>
+  </form>
+  <p>Hai già un account? <a href="login.html">Accedi</a></p>
+
+  <script>
+    document.getElementById('signupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      const response = await fetch('http://localhost:3000/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      if (response.ok) {
+        alert('Registrazione riuscita! Ora puoi accedere.');
+        window.location.href = 'login.html';
+      } else {
+        const errorMessage = await response.text();
+        alert('Errore nella registrazione: ' + errorMessage);
+      }
+    });
+  </script>
+</body>
+</html>

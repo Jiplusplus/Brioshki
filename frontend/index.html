@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestione Clienti</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background-color: #f4f4f4; }
+    button { margin: 5px; }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = 'login.html'; // Reindirizza se non autenticato
+      }
+    });
+
+    function logout() {
+      localStorage.removeItem('token'); // Rimuove il token
+      window.location.href = 'login.html'; // Reindirizza alla pagina di login
+    }
+  </script>
+</head>
+<body>
+
+  <h1>Gestione Clienti</h1>
+  <button onclick="logout()">Logout</button>
+
+  <form id="clienteForm">
+    <input type="text" id="nome" placeholder="Nome" required>
+    <input type="text" id="indirizzo" placeholder="Indirizzo" required>
+    <input type="text" id="telefono" placeholder="Telefono" required>
+    <button type="submit">Aggiungi Cliente</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nome</th>
+        <th>Indirizzo</th>
+        <th>Telefono</th>
+        <th>Azioni</th>
+      </tr>
+    </thead>
+    <tbody id="clientiTable"></tbody>
+  </table>
+
+  <script src="script.js"></script>
+</body>
+</html>
