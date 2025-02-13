@@ -87,3 +87,5 @@ document.addEventListener('DOMContentLoaded', () => {
   // Carica i clienti al caricamento della pagina
   caricaClienti();
 });
+
+//prova
