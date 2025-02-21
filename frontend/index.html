@@ -5,31 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestione Clienti</title>
   <link rel="stylesheet" href="style.css">
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background-color: #f4f4f4; }
-    button { margin: 5px; }
-  </style>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        window.location.href = 'login.html'; // Reindirizza se non autenticato
-      }
-    });
-
-    function logout() {
-      localStorage.removeItem('token'); // Rimuove il token
-      window.location.href = 'login.html'; // Reindirizza alla pagina di login
-    }
-  </script>
 </head>
 <body>
-
   <h1>Gestione Clienti</h1>
-  <button onclick="logout()">Logout</button>
+  <button class="logout-button" onclick="logout()">Logout</button>
 
   <form id="clienteForm">
     <input type="text" id="nome" placeholder="Nome" required>
@@ -51,6 +30,31 @@
     <tbody id="clientiTable"></tbody>
   </table>
 
+  <!-- Modale per Modifica Cliente -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="chiudiModale()">&times;</span>
+      <h2>Modifica Cliente</h2>
+      <input type="text" id="editNome" placeholder="Nome">
+      <input type="text" id="editIndirizzo" placeholder="Indirizzo">
+      <input type="text" id="editTelefono" placeholder="Telefono">
+      <button id="saveChanges">Salva</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = 'login.html'; 
+      }
+    });
+
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = 'login.html'; 
+    }
+  </script>
   <script src="script.js"></script>
 </body>
 </html>
