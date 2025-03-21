@@ -19,7 +19,7 @@ const db = mysql.createConnection({
   host: 'localhost',
   user: 'root',
   password: '',
-  database: 'gestione_ordini'
+  database: 'gestione_ordini' 
 });
 
 db.connect((err) => {
@@ -97,14 +97,18 @@ app.get('/clienti', verificaToken, (req, res) => {
 
 app.post('/clienti', verificaToken, (req, res) => {
   const { nome, indirizzo, telefono } = req.body;
+
   db.query('INSERT INTO clienti (nome, indirizzo, telefono) VALUES (?, ?, ?)', [nome, indirizzo, telefono], (err) => {
     if (err) {
       console.error('Errore inserimento cliente:', err);
-      return res.status(500).json({ message: 'Errore nel server' });
+      return res.status(500).json({ message: 'Errore nel server' }); // Restituisci un JSON con un messaggio di errore
     }
-    res.send('Cliente aggiunto');
+
+    // Risposta corretta, restituire un oggetto JSON
+    res.status(201).json({ message: 'Cliente aggiunto con successo' }); // Restituisci una risposta JSON
   });
 });
+
 
 app.put('/clienti/:id', verificaToken, (req, res) => {
   const { id } = req.params;
@@ -114,9 +118,9 @@ app.put('/clienti/:id', verificaToken, (req, res) => {
       console.error('Errore aggiornamento cliente:', err);
       return res.status(500).json({ message: 'Errore nel server' });
     }
-    res.send('Cliente aggiornato');
+    res.json({ message: 'Cliente aggiornato con successo' });
   });
-});
+});  
 
 app.delete('/clienti/:id', verificaToken, (req, res) => {
   const { id } = req.params;
@@ -125,7 +129,67 @@ app.delete('/clienti/:id', verificaToken, (req, res) => {
       console.error('Errore eliminazione cliente:', err);
       return res.status(500).json({ message: 'Errore nel server' });
     }
-    res.send('Cliente cancellato');
+    res.json({ message: 'Cliente cancellato con successo' });
+  });
+});
+
+// API Gestione Brioche
+app.get('/brioches', verificaToken, (req, res) => {
+  db.query('SELECT * FROM brioches', (err, results) => {
+    if (err) {
+      console.error('Errore nel database:', err);
+      return res.status(500).json({ message: 'Errore nel server' });
+    }
+    res.json(results);
+  });
+});
+
+// API Inserimento Ordine
+app.post('/ordini', verificaToken, (req, res) => {
+  const { cliente_id, brioche_id, quantita } = req.body; // Assicurati che "cliente_id" sia il nome giusto
+
+  // Prima controlla che il cliente e la brioche esistano
+  db.query('SELECT * FROM clienti WHERE id = ?', [cliente_id], (err, clienteResults) => {
+    if (err) {
+      console.error('Errore nel database:', err);
+      return res.status(500).json({ message: 'Errore nel server' });
+    }
+    if (clienteResults.length === 0) return res.status(404).json({ message: 'Cliente non trovato' });
+
+    db.query('SELECT * FROM brioches WHERE id = ?', [brioche_id], (err, briocheResults) => {
+      if (err) {
+        console.error('Errore nel database:', err);
+        return res.status(500).json({ message: 'Errore nel server' });
+      }
+      if (briocheResults.length === 0) return res.status(404).json({ message: 'Brioche non trovata' });
+
+      // Calcolare il totale basato sulla quantità
+      const totale = briocheResults[0].prezzo * quantita; // Considera la quantità
+
+      // Inserisci l'ordine
+      const ordineData = {
+        cliente_id: cliente_id,
+        data_ordine: new Date(),
+        totale: totale
+      };
+
+      db.query('INSERT INTO ordini SET ?', ordineData, (err, result) => {
+        if (err) {
+          console.error('Errore nel database:', err);
+          return res.status(500).json({ message: 'Errore nel server' });
+        }
+
+        const ordineId = result.insertId;
+        // Aggiungi dettagli ordine
+        db.query('INSERT INTO ordine_dettagli (ordine_id, brioche_id, quantita) VALUES (?, ?, ?)', [ordineId, brioche_id, quantita], (err) => {
+          if (err) {
+            console.error('Errore nel database:', err);
+            return res.status(500).json({ message: 'Errore nel server' });
+          }
+          res.json({ message: 'Ordine inserito con successo' });
+        });
+      });
+    });
   });
 });
 

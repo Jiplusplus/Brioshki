@@ -31,7 +31,7 @@
   </table>
 
   <!-- Modale per Modifica Cliente -->
-  <div id="editModal" class="modal">
+  <div id="editModal" class="modal" style="display: none;">
     <div class="modal-content">
       <span class="close" onclick="chiudiModale()">&times;</span>
       <h2>Modifica Cliente</h2>
@@ -42,19 +42,41 @@
     </div>
   </div>
 
+  <!-- Modale per Inserimento Ordine -->
+  <div id="ordineModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h2>Inserisci Ordine</h2>
+      <table id="briochesTable">
+        <thead>
+          <tr>
+            <th>Nome Brioche</th>
+            <th>Prezzo</th>
+            <th>Quantità</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Righe della tabella aggiunte dinamicamente -->
+        </tbody>
+      </table>
+      <button id="confermaOrdine">Conferma Ordine</button>
+      <button onclick="chiudiOrdine()">Chiudi</button>
+    </div>
+  </div>
+
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const token = localStorage.getItem('token');
       if (!token) {
-        window.location.href = 'login.html'; 
+        window.location.href = 'login.html';
       }
     });
 
     function logout() {
       localStorage.removeItem('token');
-      window.location.href = 'login.html'; 
+      window.location.href = 'login.html';
     }
   </script>
+  
   <script src="script.js"></script>
 </body>
 </html>
