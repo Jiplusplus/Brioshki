@@ -19,7 +19,7 @@ const db = mysql.createConnection({
   host: 'localhost',
   user: 'root',
   password: '',
-  database: 'gestione_ordini' 
+  database: 'gestione_ordini'
 });
 
 db.connect((err) => {
@@ -120,7 +120,7 @@ app.put('/clienti/:id', verificaToken, (req, res) => {
     }
     res.json({ message: 'Cliente aggiornato con successo' });
   });
-});  
+});
 
 app.delete('/clienti/:id', verificaToken, (req, res) => {
   const { id } = req.params;
@@ -192,6 +192,158 @@ app.post('/ordini', verificaToken, (req, res) => {
     });
   });
 });
+
+// API per ottenere gli ordini di un cliente specifico con dettagli prodotti (versione compatibile)
+// API per ottenere gli ordini di un cliente specifico (versione compatibile)
+app.get('/clienti/:id/ordini', verificaToken, (req, res) => {
+  const { id } = req.params;
+
+  db.query(`
+    SELECT 
+      o.id, 
+      o.data_ordine, 
+      o.orario_ordine,
+      o.totale,
+      b.nome,
+      od.quantita,
+      b.prezzo,
+      (b.prezzo * od.quantita) AS subtotale
+    FROM ordini o
+    JOIN ordine_dettagli od ON o.id = od.ordine_id
+    JOIN brioches b ON od.brioche_id = b.id
+    WHERE o.cliente_id = ?
+    ORDER BY o.data_ordine DESC, o.orario_ordine DESC
+  `, [id], (err, results) => {
+    if (err) {
+      console.error('Errore nel database:', err);
+      return res.status(500).json({ message: 'Errore nel server' });
+    }
+
+    // Raggruppa i risultati per ordine
+    const ordini = {};
+    results.forEach(row => {
+      if (!ordini[row.id]) {
+        ordini[row.id] = {
+          id: row.id,
+          data_ordine: row.data_ordine,
+          orario_ordine: row.orario_ordine,
+          totale: row.totale,
+          prodotti: []
+        };
+      }
+      ordini[row.id].prodotti.push({
+        nome: row.nome,
+        quantita: row.quantita,
+        prezzo: row.prezzo,
+        subtotale: row.subtotale
+      });
+    });
+
+    res.json(Object.values(ordini));
+  });
+});
+
+// API per inserire un ordine con multipli prodotti
+app.post('/ordini/completo', verificaToken, async (req, res) => {
+  const { cliente_id, prodotti } = req.body; // Rimuovi 'totale' dai parametri
+
+  try {
+    // Verifica che il cliente esista
+    const [cliente] = await db.promise().query('SELECT * FROM clienti WHERE id = ?', [cliente_id]);
+    if (!cliente.length) return res.status(404).json({ message: 'Cliente non trovato' });
+
+    // Calcola il totale nel backend
+    let totale = 0;
+    const prodottiConPrezzi = [];
+
+    for (const prodotto of prodotti) {
+      const [brioche] = await db.promise().query('SELECT * FROM brioches WHERE id = ?', [prodotto.brioche_id]);
+      if (!brioche.length) {
+        return res.status(404).json({ message: `Brioche con ID ${prodotto.brioche_id} non trovata` });
+      }
+
+      const prezzo = brioche[0].prezzo;
+      const subtotale = prezzo * prodotto.quantita;
+      totale += subtotale;
+
+      prodottiConPrezzi.push({
+        ...prodotto,
+        prezzo // Aggiungi il prezzo per riferimento
+      });
+    }
+
+    const now = new Date();
+    const data_ordine = now.toISOString().split('T')[0];
+    const orario_ordine = now.toTimeString().split(' ')[0];
+
+    // Inserisci l'ordine con il totale calcolato
+    const [ordine] = await db.promise().query(
+      'INSERT INTO ordini (cliente_id, data_ordine, orario_ordine, totale) VALUES (?, ?, ?, ?)',
+      [cliente_id, data_ordine, orario_ordine, totale]
+    );
+
+    // Inserisci i dettagli dell'ordine
+    for (const prodotto of prodottiConPrezzi) {
+      await db.promise().query(
+        'INSERT INTO ordine_dettagli (ordine_id, brioche_id, quantita) VALUES (?, ?, ?)',
+        [ordine.insertId, prodotto.brioche_id, prodotto.quantita]
+      );
+    }
+
+    res.json({
+      success: true,
+      ordine_id: ordine.insertId,
+      data_ordine,
+      orario_ordine,
+      totale // Ora è calcolato dal backend
+    });
+
+  } catch (error) {
+    console.error('Errore nel database:', error);
+    res.status(500).json({ success: false, message: 'Errore nel server' });
+  }
+});
+
+// API per ottenere gli ordini di un cliente
+app.get('/clienti/:id/ordini', verificaToken, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Recupera gli ordini base
+    const [ordini] = await db.promise().query(`
+      SELECT id, data_ordine, orario_ordine, totale
+      FROM ordini
+      WHERE cliente_id = ?
+      ORDER BY data_ordine DESC, orario_ordine DESC
+    `, [id]);
+
+    // Per ogni ordine, recupera i prodotti
+    const ordiniCompleti = await Promise.all(ordini.map(async ordine => {
+      const [prodotti] = await db.promise().query(`
+        SELECT 
+          b.nome,
+          od.quantita,
+          b.prezzo,
+          (b.prezzo * od.quantita) AS subtotale
+        FROM ordine_dettagli od
+        JOIN brioches b ON od.brioche_id = b.id
+        WHERE od.ordine_id = ?
+      `, [ordine.id]);
+
+      return {
+        ...ordine,
+        prodotti
+      };
+    }));
+
+    res.json(ordiniCompleti);
+  } catch (error) {
+    console.error('Errore nel database:', error);
+    res.status(500).json({ message: 'Errore nel server' });
+  }
+});
+
+// ... (il resto delle route rimane invariato)
 
 app.listen(port, () => {
   console.log(`Server avviato su http://localhost:${port}`);
